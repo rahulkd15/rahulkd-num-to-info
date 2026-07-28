@@ -1,14 +1,19 @@
 export default async function handler(req, res) {
-  // CORS enable karne ke liye (taki kisi bhi website se api call ho sake)
+  // CORS setup
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Content-Type', 'application/json'); // Format ko text ki jagah JSON banane ke liye
 
-  // URL se number nikalna (jaise: /api?number=9876543210)
+  // Line-by-line (Professional) print karne ke liye custom function
+  const sendFormattedJson = (statusCode, data) => {
+    return res.status(statusCode).send(JSON.stringify(data, null, 2));
+  };
+
   const { number } = req.query;
 
-  // Agar number nahi dala toh aapka custom error response
+  // Error Format
   if (!number) {
-    return res.status(400).json({
+    return sendFormattedJson(400, {
       success: false,
       message: "Number required",
       example: "/api?number=9876543210",
@@ -18,61 +23,54 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Original API ko call karna
     const apiUrl = `https://shuruuuuuuuuuuuu-num-info.vercel.app/apis/num_info_v1?key=HUNTERX&num=${number}`;
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    // Agar original API se response 'true' aata hai
     if (data.status === true && data.result) {
-      const formattedData = [];
+      
+      // Original API chahe duplicate result de, hum sirf pehla (First) result nikalenge
+      const keys = Object.keys(data.result);
+      if (keys.length === 0) throw new Error("No data found");
+      
+      const item = data.result[keys[0]]; // Sirf 1 result
 
-      // Result object ko array me convert karke format karna
-      for (const key in data.result) {
-        const item = data.result[key];
-        
-        // Address ko '!' se split karke parts me divide karna
-        const rawAddress = item.address || "";
-        const parts = rawAddress.split('!').filter(Boolean); // Empty spaces ko remove karne ke liye filter
+      // Address Parsing
+      const rawAddress = item.address || "";
+      const parts = rawAddress.split('!').filter(Boolean); // '!' ko remove karke words alag karna
 
-        // Address parts nikalna (Logic based on provided address format)
-        const full_address = parts.join(', ');
-        const pincode = parts.length > 0 ? parts[parts.length - 1] : "Not Found";
-        const state = parts.length > 1 ? parts[parts.length - 2] : "Not Found";
-        const district = parts.length > 2 ? parts[parts.length - 3] : "Not Found";
-        const village_city = parts.length > 4 ? parts[1] : (parts.length > 0 ? parts[0] : "Not Found");
-        const landmark = parts.length > 4 ? parts[2] : "Not Found";
+      const full_address = parts.join(', ');
+      const pincode = parts.length > 0 ? parts[parts.length - 1] : "";
+      const state = parts.length > 1 ? parts[parts.length - 2] : "";
+      const district = parts.length > 2 ? parts[parts.length - 3] : "";
+      const village_city = parts.length > 4 ? parts[1] : "";
+      const landmark = parts.length > 4 ? parts[2] : "";
 
-        // Aapke format ke mutabiq object taiyar karna
-        formattedData.push({
-          number: item.num || number,
-          name: item.name || "Not Found",
-          father_name: item.fname || "Not Found",
-          alt_number: item.alt || "Not Found",
-          email: item.email || "Not Available",
-          aadhar: item.aadhar || "Not Found",
-          circle: item.circle || "Not Found",
-          state: state,
-          district: district,
-          "village/city": village_city,
-          landmark: landmark,
-          pincode: pincode,
-          full_address: full_address
-        });
-      }
-
-      // Success Response
-      return res.status(200).json({
+      // Exact Wahi Format Jo Aapko Chahiye Tha (Without Array)
+      const finalResponse = {
         success: true,
         developer: "RAHUL KD",
         telegram: "@DASJII_H4REE",
-        total_results: data.total_results,
-        data: formattedData
-      });
+        number: item.num || number,
+        name: item.name || "",
+        father_name: item.fname || "",
+        alt_number: item.alt || "",
+        email: item.email || "",
+        aadhar: item.aadhar || "",
+        circle: item.circle || "",
+        state: state,
+        district: district,
+        "village/city": village_city,
+        landmark: landmark,
+        pincode: pincode,
+        full_address: full_address
+      };
+
+      // Success Response Print karega (Line by line)
+      return sendFormattedJson(200, finalResponse);
 
     } else {
-      // Agar number ka data original API me na mile
-      return res.status(404).json({
+      return sendFormattedJson(404, {
         success: false,
         message: "No details found for this number",
         developer: "RAHUL KD",
@@ -81,11 +79,9 @@ export default async function handler(req, res) {
     }
 
   } catch (error) {
-    // Agar server ya fetch me koi error aaye
-    return res.status(500).json({
+    return sendFormattedJson(500, {
       success: false,
-      message: "Server Error, please try again later",
-      error: error.message,
+      message: "Server Error, please try again",
       developer: "RAHUL KD",
       telegram: "@DASJII_H4REE"
     });
