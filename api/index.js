@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       const rawAddress = bestItem.address || "";
       const parts = rawAddress.split('!').filter(Boolean);
 
-      // NAYA LOGIC: Agar value khali ya null hai, toh usko string "null" me convert kar do
+      // Agar value khali ya null hai, toh usko string "null" me convert kar do
       const getValidValue = (val) => {
         if (val === null || val === undefined || String(val).trim() === "") {
           return "null"; // Text wala "null" with quotes
@@ -63,11 +63,12 @@ export default async function handler(req, res) {
       // Response ka Format
       const finalResponse = {
         success: true,
+        message: "Record found successfully", // Naya message yahan add kiya hai
         number: getValidValue(bestItem.num) !== "null" ? getValidValue(bestItem.num) : number,
         name: getValidValue(bestItem.name),
         father_name: getValidValue(bestItem.fname),
         alt_number: getValidValue(bestItem.alt),
-        email: getValidValue(bestItem.email), // Yahan ab "null" aayega agar khali hoga
+        email: getValidValue(bestItem.email),
         aadhar: getValidValue(bestItem.aadhar),
         circle: getValidValue(bestItem.circle),
         state: parts.length > 1 ? parts[parts.length - 2] : "null",
@@ -83,15 +84,17 @@ export default async function handler(req, res) {
       return sendFormattedJson(200, finalResponse);
 
     } else {
+      // Agar record na mile
       return sendFormattedJson(404, {
         success: false,
-        message: "No details found for this number",
+        message: "No record found for this number",
         developer: "RAHUL KD",
         telegram: "@DASJII_H4REE"
       });
     }
 
   } catch (error) {
+    // Agar server error ho
     return sendFormattedJson(500, {
       success: false,
       message: "Server Error, please try again",
