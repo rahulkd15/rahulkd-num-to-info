@@ -4,14 +4,14 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Content-Type', 'application/json');
 
-  // Professional line-by-line function
+  // Professional line-by-line JSON function
   const sendFormattedJson = (statusCode, data) => {
     return res.status(statusCode).send(JSON.stringify(data, null, 2));
   };
 
   const { number } = req.query;
 
-  // Error jab number na dala jaye
+  // Agar number blank ho
   if (!number) {
     return sendFormattedJson(400, {
       success: false,
@@ -27,11 +27,11 @@ export default async function handler(req, res) {
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    if (data.status === true && data.result) {
+    // Check agar data hai aur khali nahi hai
+    if (data.status === true && data.result && Object.keys(data.result).length > 0) {
       const results = Object.values(data.result);
-      if (results.length === 0) throw new Error("No data found");
 
-      // Logic: Sabse zyada info wala result (ya last wala) uthana
+      // Sabse zyada info wala result (ya last wala) uthana
       let bestItem = results[0];
       let maxInfoCount = 0;
 
@@ -55,21 +55,21 @@ export default async function handler(req, res) {
       // Agar value khali ya null hai, toh usko string "null" me convert kar do
       const getValidValue = (val) => {
         if (val === null || val === undefined || String(val).trim() === "") {
-          return "null"; // Text wala "null" with quotes
+          return "null"; 
         }
         return String(val);
       };
 
-      // Response ka Format
+      // Response ka Format (Yahan Aadhar ke just niche Email kar diya hai)
       const finalResponse = {
         success: true,
-        message: "Record found successfully", // Naya message yahan add kiya hai
+        message: "Record found successfully",
         number: getValidValue(bestItem.num) !== "null" ? getValidValue(bestItem.num) : number,
         name: getValidValue(bestItem.name),
         father_name: getValidValue(bestItem.fname),
         alt_number: getValidValue(bestItem.alt),
-        email: getValidValue(bestItem.email),
-        aadhar: getValidValue(bestItem.aadhar),
+        aadhar: getValidValue(bestItem.aadhar), // Aadhar pehle
+        email: getValidValue(bestItem.email),   // Email just Aadhar ke niche
         circle: getValidValue(bestItem.circle),
         state: parts.length > 1 ? parts[parts.length - 2] : "null",
         district: parts.length > 2 ? parts[parts.length - 3] : "null",
@@ -84,17 +84,16 @@ export default async function handler(req, res) {
       return sendFormattedJson(200, finalResponse);
 
     } else {
-      // Agar record na mile
+      // Agar record na mile (Aapki requirement ke hisaab se exact msg)
       return sendFormattedJson(404, {
         success: false,
-        message: "No record found for this number",
+        message: "No record found",
         developer: "RAHUL KD",
         telegram: "@DASJII_H4REE"
       });
     }
 
   } catch (error) {
-    // Agar server error ho
     return sendFormattedJson(500, {
       success: false,
       message: "Server Error, please try again",
