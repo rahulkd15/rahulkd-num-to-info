@@ -23,7 +23,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const apiUrl = `https://shuruuuuuuuuuuuu-num-info.vercel.app/apis/num_info_v1?key=HUNTERX&num=${number}`;
+    const apiUrl = `https://api-pro-v2.vercel.app/key/576f1e132326cee10f887ec38ccae1/get_data?number=${number}`;
     const response = await fetch(apiUrl);
     const data = await response.json();
 
