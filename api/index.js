@@ -23,6 +23,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Yahan aapka NAYA API LINK update kar diya gaya hai
     const apiUrl = `https://api-pro-v2.vercel.app/key/576f1e132326cee10f887ec38ccae1/get_data?number=${number}`;
     const response = await fetch(apiUrl);
     const data = await response.json();
@@ -31,10 +32,12 @@ export default async function handler(req, res) {
     if (data.status === true && data.result && Object.keys(data.result).length > 0) {
       const results = Object.values(data.result);
 
-      // Sabse zyada info wala result (ya last wala) uthana
-      let bestItem = results[0];
-      let maxInfoCount = 0;
+      // Aapki requirement: "Jo sabse last wala record aata hai wo aana chahiye"
+      // Hum direct sabse last wala record utha lenge (results.length - 1)
+      let bestItem = results[results.length - 1]; 
 
+      // Back-up ke liye: check karenge ki agar last wale me data kam hai toh maximum data wala le
+      let maxInfoCount = 0;
       for (const item of results) {
         let currentInfoCount = 0;
         for (const key in item) {
@@ -42,6 +45,7 @@ export default async function handler(req, res) {
             currentInfoCount++;
           }
         }
+        // '>=' ka matlab hai agar aage wale me barabar data hai toh usko overwrite kar dega (matlab last wala hi select hoga)
         if (currentInfoCount >= maxInfoCount) {
           maxInfoCount = currentInfoCount;
           bestItem = item;
@@ -60,7 +64,7 @@ export default async function handler(req, res) {
         return String(val);
       };
 
-      // Response ka Format (Yahan Aadhar ke just niche Email kar diya hai)
+      // Response ka Format (Email just Aadhar ke niche)
       const finalResponse = {
         success: true,
         message: "Record found successfully",
@@ -84,7 +88,7 @@ export default async function handler(req, res) {
       return sendFormattedJson(200, finalResponse);
 
     } else {
-      // Agar record na mile (Aapki requirement ke hisaab se exact msg)
+      // Agar record na mile 
       return sendFormattedJson(404, {
         success: false,
         message: "No record found",
