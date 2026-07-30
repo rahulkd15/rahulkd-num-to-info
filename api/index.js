@@ -1,17 +1,15 @@
 export default async function handler(req, res) {
-  // CORS Enable karne ke liye
+  // CORS Enable
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Content-Type', 'application/json');
 
-  // Professional line-by-line JSON function
   const sendFormattedJson = (statusCode, data) => {
     return res.status(statusCode).send(JSON.stringify(data, null, 2));
   };
 
   const { number } = req.query;
 
-  // Agar number blank ho
   if (!number) {
     return sendFormattedJson(400, {
       success: false,
@@ -23,48 +21,38 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Yahan aapka NAYA API LINK update kar diya gaya hai
     const apiUrl = `https://api-pro-v2.vercel.app/key/576f1e132326cee10f887ec38ccae1/get_data?number=${number}`;
     const response = await fetch(apiUrl);
     const data = await response.json();
 
-    // Check agar data hai aur khali nahi hai
-    if (data.status === true && data.result && Object.keys(data.result).length > 0) {
-      const results = Object.values(data.result);
+    // Naye API ka format bhot andar tak hai (result ke andar result)
+    // Safely array nikalne ka logic:
+    const records = data?.result?.result?.result?.result || [];
 
-      // Aapki requirement: "Jo sabse last wala record aata hai wo aana chahiye"
-      // Hum direct sabse last wala record utha lenge (results.length - 1)
-      let bestItem = results[results.length - 1]; 
+    if (records.length > 0) {
+      
+      // SMART FILTER: Sirf wahi record lo jiska 'num' exact search number se match kare
+      // Taki kisi aur ka data (jisme ye number alternate diya ho) filter ho jaye
+      const matchedRecords = records.filter(item => item.num === number);
+      
+      // Agar exact match mile toh unme se LAST wala uthao, nahi toh default list ka LAST uthao
+      let bestItem = matchedRecords.length > 0 
+        ? matchedRecords[matchedRecords.length - 1] 
+        : records[records.length - 1];
 
-      // Back-up ke liye: check karenge ki agar last wale me data kam hai toh maximum data wala le
-      let maxInfoCount = 0;
-      for (const item of results) {
-        let currentInfoCount = 0;
-        for (const key in item) {
-          if (item[key] !== null && item[key] !== "" && item[key] !== undefined) {
-            currentInfoCount++;
-          }
-        }
-        // '>=' ka matlab hai agar aage wale me barabar data hai toh usko overwrite kar dega (matlab last wala hi select hoga)
-        if (currentInfoCount >= maxInfoCount) {
-          maxInfoCount = currentInfoCount;
-          bestItem = item;
-        }
-      }
-
-      // Address ko thik se todna
+      // Address Parsing
       const rawAddress = bestItem.address || "";
-      const parts = rawAddress.split('!').filter(Boolean);
+      const parts = rawAddress.split('!').map(p => p.trim()).filter(Boolean); // Extra spaces hata ke filter karna
 
-      // Agar value khali ya null hai, toh usko string "null" me convert kar do
+      // Value "null" (Text) me set karne ka logic
       const getValidValue = (val) => {
         if (val === null || val === undefined || String(val).trim() === "") {
           return "null"; 
         }
-        return String(val);
+        return String(val).trim();
       };
 
-      // Response ka Format (Email just Aadhar ke niche)
+      // Response ka wahi same Professional Format
       const finalResponse = {
         success: true,
         message: "Record found successfully",
@@ -72,8 +60,8 @@ export default async function handler(req, res) {
         name: getValidValue(bestItem.name),
         father_name: getValidValue(bestItem.fname),
         alt_number: getValidValue(bestItem.alt),
-        aadhar: getValidValue(bestItem.aadhar), // Aadhar pehle
-        email: getValidValue(bestItem.email),   // Email just Aadhar ke niche
+        aadhar: getValidValue(bestItem.aadhar), 
+        email: getValidValue(bestItem.email),   // Email Aadhar ke just niche
         circle: getValidValue(bestItem.circle),
         state: parts.length > 1 ? parts[parts.length - 2] : "null",
         district: parts.length > 2 ? parts[parts.length - 3] : "null",
@@ -88,7 +76,7 @@ export default async function handler(req, res) {
       return sendFormattedJson(200, finalResponse);
 
     } else {
-      // Agar record na mile 
+      // Agar record na mile
       return sendFormattedJson(404, {
         success: false,
         message: "No record found",
