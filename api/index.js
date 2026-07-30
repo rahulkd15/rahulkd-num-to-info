@@ -1,37 +1,94 @@
-{
-  "success": true,
-  "message": "Records found successfully",
-  "total_records": 2,
-  "record_1": {
-    "number": "9876543210",
-    "name": "Dev Jyoti Roy",
-    "father_name": "Salil Kumar Roy",
-    "alt_number": "null",
-    "aadhar": "null",
-    "email": "devjroy@gmail.com",
-    "circle": "AIRTEL DELHI",
-    "state": "Uttar Pradesh",
-    "district": "NoidaGautam Buddha Nagar",
-    "village/city": "Lotus Boulevard",
-    "landmark": "NoidaSector 100",
-    "pincode": "201301",
-    "full_address": "Tower 9 Flat 1506, Lotus Boulevard, NoidaSector 100, NoidaGautam Buddha Nagar, Uttar Pradesh, 201301"
-  },
-  "record_2": {
-    "number": "9876543210",
-    "name": "MR. DEEPAK MEHTA",
-    "father_name": "CHANDER PRAKASH MEHTA",
-    "alt_number": "9999400000",
-    "aadhar": "886553666165",
-    "email": "null",
-    "circle": "Delhi Voda",
-    "state": "DELHI",
-    "district": "DELHI",
-    "village/city": "KAMLA NAGAR",
-    "landmark": "KAMLA NAGARNORTH DELHI",
-    "pincode": "110007",
-    "full_address": "D71, KAMLA NAGAR, KAMLA NAGARNORTH DELHI, DELHI, DELHI, 110007"
-  },
-  "developer": "RAHUL KD",
-  "telegram": "@DASJII_H4REE"
+export default async function handler(req, res) {
+  // CORS Enable
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Content-Type', 'application/json');
+
+  const sendFormattedJson = (statusCode, data) => {
+    return res.status(statusCode).send(JSON.stringify(data, null, 2));
+  };
+
+  const { number } = req.query;
+
+  if (!number) {
+    return sendFormattedJson(400, {
+      success: false,
+      message: "Number required",
+      example: "/api?number=9876543210",
+      developer: "RAHUL KD",
+      telegram: "@DASJII_H4REE"
+    });
+  }
+
+  try {
+    const apiUrl = `https://api-pro-v2.vercel.app/key/576f1e132326cee10f887ec38ccae1/get_data?number=${number}`;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+
+    const records = data?.result?.result?.result?.result || [];
+
+    // Sirf usi number ka data separate karne ke liye (Taki kisi aur ka data na aaye)
+    const matchedRecords = records.filter(item => item.num === number);
+
+    if (matchedRecords.length > 0) {
+      const getValidValue = (val) => {
+        if (val === null || val === undefined || String(val).trim() === "") {
+          return "null"; 
+        }
+        return String(val).trim();
+      };
+
+      // Shuruwat ka Format
+      const finalResponse = {
+        success: true,
+        message: "Records found successfully",
+        total_records: matchedRecords.length // Ye batayega total kitne records mile
+      };
+
+      // Loop lagakar sabhi records ko record_1, record_2 banana
+      matchedRecords.forEach((item, index) => {
+        const rawAddress = item.address || "";
+        const parts = rawAddress.split('!').map(p => p.trim()).filter(Boolean);
+
+        finalResponse[`record_${index + 1}`] = {
+          number: getValidValue(item.num) !== "null" ? getValidValue(item.num) : number,
+          name: getValidValue(item.name),
+          father_name: getValidValue(item.fname),
+          alt_number: getValidValue(item.alt),
+          aadhar: getValidValue(item.aadhar), 
+          email: getValidValue(item.email),   // Email Aadhar ke niche
+          circle: getValidValue(item.circle),
+          state: parts.length > 1 ? parts[parts.length - 2] : "null",
+          district: parts.length > 2 ? parts[parts.length - 3] : "null",
+          "village/city": parts.length > 4 ? parts[1] : "null",
+          landmark: parts.length > 4 ? parts[2] : "null",
+          pincode: parts.length > 0 ? parts[parts.length - 1] : "null",
+          full_address: parts.length > 0 ? parts.join(', ') : "null"
+        };
+      });
+
+      // Saare records ke baad ekdum LAST me Developer details daalna
+      finalResponse.developer = "RAHUL KD";
+      finalResponse.telegram = "@DASJII_H4REE";
+
+      return sendFormattedJson(200, finalResponse);
+
+    } else {
+      // Agar record na mile
+      return sendFormattedJson(404, {
+        success: false,
+        message: "No record found",
+        developer: "RAHUL KD",
+        telegram: "@DASJII_H4REE"
+      });
+    }
+
+  } catch (error) {
+    return sendFormattedJson(500, {
+      success: false,
+      message: "Server Error, please try again",
+      developer: "RAHUL KD",
+      telegram: "@DASJII_H4REE"
+    });
+  }
 }
