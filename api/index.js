@@ -10,6 +10,7 @@ export default async function handler(req, res) {
 
   const { number } = req.query;
 
+  // Agar number blank ho
   if (!number) {
     return sendFormattedJson(400, {
       success: false,
@@ -25,12 +26,11 @@ export default async function handler(req, res) {
     const response = await fetch(apiUrl);
     const data = await response.json();
 
+    // Original API se SARE records nikalna
     const records = data?.result?.result?.result?.result || [];
 
-    // Sirf usi number ka data separate karne ke liye (Taki kisi aur ka data na aaye)
-    const matchedRecords = records.filter(item => item.num === number);
-
-    if (matchedRecords.length > 0) {
+    // Filter hata diya gaya hai! Ab jitne bhi records aayenge sab show honge.
+    if (records.length > 0) {
       const getValidValue = (val) => {
         if (val === null || val === undefined || String(val).trim() === "") {
           return "null"; 
@@ -38,15 +38,15 @@ export default async function handler(req, res) {
         return String(val).trim();
       };
 
-      // Shuruwat ka Format
+      // Shuruwat ka response format
       const finalResponse = {
         success: true,
         message: "Records found successfully",
-        total_records: matchedRecords.length // Ye batayega total kitne records mile
+        total_records: records.length // Ye batayega total kitne records mile 
       };
 
-      // Loop lagakar sabhi records ko record_1, record_2 banana
-      matchedRecords.forEach((item, index) => {
+      // Loop lagakar SARE records ko record_1, record_2 banana
+      records.forEach((item, index) => {
         const rawAddress = item.address || "";
         const parts = rawAddress.split('!').map(p => p.trim()).filter(Boolean);
 
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
           father_name: getValidValue(item.fname),
           alt_number: getValidValue(item.alt),
           aadhar: getValidValue(item.aadhar), 
-          email: getValidValue(item.email),   // Email Aadhar ke niche
+          email: getValidValue(item.email),   // Email aadhar ke niche
           circle: getValidValue(item.circle),
           state: parts.length > 1 ? parts[parts.length - 2] : "null",
           district: parts.length > 2 ? parts[parts.length - 3] : "null",
